@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arfet Language</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .container {
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+        }
+        #log {
+            border: 1px solid #333;
+            background: #1e1e1e;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px 2px rgba(0, 0, 0, 0.5);
+        }
+        #commandInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #333;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.5);
+        }
+        #commandInput:focus {
+            outline: none;
+            box-shadow: 0px 0px 8px 2px #00bcd4;
+        }
+        .log-entry {
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .no-connection {
+            display: none;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .no-connection img {
+            width: 150px;
+            animation: runDuck 1s linear infinite;
+        }
+        @keyframes runDuck {
+            from {
+                transform: translateX(0);
+            }
+            to {
+                transform: translateX(20px);
+            }
+        }
+    </style>
+    <script>
+        class ArfetLanguage {
+            constructor() {
+                this.commands = {};
+                this.registerDefaultCommands();
+                this.checkNetwork();
+            }
+
+            log(message) {
+                const logElement = document.getElementById("log");
+                const entry = document.createElement("div");
+                entry.innerHTML = message;
+                entry.className = "log-entry";
+                logElement.appendChild(entry);
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+
+            checkNetwork() {
+                setInterval(() => {
+                    if (!navigator.onLine) {
+                        this.showNoConnection();
+                    } else {
+                        this.hideNoConnection();
+                    }
+                }, 1000);
+            }
+
+            showNoConnection() {
+                document.getElementById("commandInput").disabled = true;
+                document.getElementById("log").style.display = "none";
+                document.querySelector(".no-connection").style.display = "block";
+            }
+
+            hideNoConnection() {
+                document.getElementById("commandInput").disabled = false;
+                document.getElementById("log").style.display = "block";
+                document.querySelector(".no-connection").style.display = "none";
+            }
+
+            async fetchWeather(location) {
+                try {
+                    const apiKey = "your_api_key_here"; // Replace with a real API key
+                    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}&units=metric`);
+                    const data = await response.json();
+                    if (data.cod === 200) {
+                        this.log(`Weather in ${data.name}: ${data.weather[0].description}, ${data.main.temp}°C.`);
+                    } else {
+                        this.log(`Weather fetch failed: ${data.message}`);
+                    }
+                } catch (error) {
+                    this.log("Error fetching weather data.");
+                }
+            }
+
+            async fetchNews() {
+                try {
+                    const apiKey = "your_api_key_here"; // Replace with a real API key
+                    const response = await fetch(`https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`);
+                    const data = await response.json();
+                    if (data.status === "ok") {
+                        this.log("Top News Headlines:");
+                        data.articles.slice(0, 5).forEach(article => {
+                            this.log(`- ${article.title}`);
+                        });
+                    } else {
+                        this.log(`News fetch failed: ${data.message}`);
+                    }
+                } catch (error) {
+                    this.log("Error fetching news data.");
+                }
+            }
+
+            registerDefaultCommands() {
+                this.commands = {
+                    "help": {
+                        value: "Displays all available commands.",
+                        action: () => this.showHelp()
+                    },
+                    "date": {
+                        value: "Shows the current date.",
+                        action: () => this.log(`Current Date: ${new Date().toLocaleDateString()}`)
+                    },
+                    "time": {
+                        value: "Shows the current time.",
+                        action: () => this.log(`Current Time: ${new Date().toLocaleTimeString()}`)
+                    },
+                    "weather": {
+                        value: "Fetches the weather for a location.",
+                        action: (args) => {
+                            if (args) {
+                                this.fetchWeather(args);
+                            } else {
+                                this.log("Please provide a location.");
+                            }
+                        }
+                    },
+                    "news": {
+                        value: "Fetches top news headlines.",
+                        action: () => this.fetchNews()
+                    },
+                    "random number": {
+                        value: "Generates a random number.",
+                        action: () => this.log(`Random Number: ${Math.random()}`)
+                    },
+                    "square": {
+                        value: "Calculates the square of a number.",
+                        action: (args) => {
+                            const num = parseFloat(args);
+                            if (isNaN(num)) {
+                                this.log("Error: Invalid number.");
+                            } else {
+                                this.log(`Square of ${num}: ${num * num}`);
+                            }
+                        }
+                    },
+                    "reverse": {
+                        value: "Reverses a string.",
+                        action: (args) => this.log(`Reversed: ${args.split('').reverse().join('')}`)
+                    },
+                    "to uppercase": {
+                        value: "Converts text to uppercase.",
+                        action: (args) => this.log(`Uppercase: ${args.toUpperCase()}`)
+                    },
+                    "to lowercase": {
+                        value: "Converts text to lowercase.",
+                        action: (args) => this.log(`Lowercase: ${args.toLowerCase()}`)
+                    },
+                    "add": {
+                        value: "Adds a series of numbers.",
+                        action: (args) => {
+                            const nums = args.split(' ').map(Number);
+                            if (nums.some(isNaN)) {
+                                this.log("Error: Invalid numbers.");
+                            } else {
+                                this.log(`Sum: ${nums.reduce((a, b) => a + b, 0)}`);
+                            }
+                        }
+                    },
+                    "subtract": {
+                        value: "Subtracts two numbers.",
+                        action: (args) => {
+                            const nums = args.split(' ').map(Number);
+                            if (nums.length !== 2 || nums.some(isNaN)) {
+                                this.log("Error: Invalid numbers.");
+                            } else {
+                                this.log(`Difference: ${nums[0] - nums[1]}`);
+                            }
+                        }
+                    },
+                    "repeat": {
+                        value: "Repeats a string a given number of times.",
+                        action: (args) => {
+                            const [count, ...text] = args.split(' ');
+                            const num = parseInt(count, 10);
+                            if (isNaN(num) || num < 1) {
+                                this.log("Error: Invalid repeat count.");
+                            } else {
+                                this.log(`Repeated: ${text.join(' ').repeat(num)}`);
+                            }
+                        }
+                    }
+                };
+
+                // Add additional commands dynamically
+                for (let i = 1; i <= 200; i++) {
+                    this.commands[`custom command ${i}`] = {
+                        value: `Executes custom command number ${i}.`,
+                        action: () => this.log(`Custom Command ${i} executed.`)
+                    };
+                }
+            }
+
+            showHelp() {
+                this.log("Available commands:");
+                Object.entries(this.commands).forEach(([cmd, details]) => {
+                    this.log(`- ${cmd}: ${details.value}`);
+                });
+            }
+
+            handleCommand(command) {
+                const [cmd, ...args] = command.split(" ");
+                const argsJoined = args.join(" ");
+                if (this.commands[cmd]) {
+                    this.commands[cmd].action(argsJoined);
+                } else {
+                    this.log("Unknown command. Type 'help' for available commands.");
+                }
+            }
+        }
+
+        const arfet = new ArfetLanguage();
+
+        function onCommandInput(event) {
+            if (event.key === "Enter") {
+                const command = event.target.value;
+                arfet.log(`[DEBUG] User entered command: ${command}`);
+                arfet.handleCommand(command);
+                event.target.value = "";
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Arfet Language</h1>
+        <div id="log"></div>
+        <input id="commandInput" type="text" onkeypress="onCommandInput(event)" placeholder="Enter command...">
+        <div class="no-connection">
+            <img src="https://via.placeholder.com/150?text=Duck" alt="Running Duck">
+            <p>No connection</p>
+        </div>
+    </div>
+</body>
+</html>
